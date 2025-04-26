@@ -1,0 +1,43 @@
+.logo{
+    padding: 20px 0 20px 0;
+    font-size: 75px;
+    color: #debff6;
+}
+
+.dots{
+    padding: 10px 0 25px 0;
+    font-size: 75px;
+    color: #debff6;
+}
+
+.eigth{
+    padding: 0px 0 0 0;
+    font-size: 75px;
+    color: #debff6;
+}
+
+.beamed-eight{
+    padding: 30px 0 15px 0;
+    font-size: 75px;
+    color: #debff6;
+}
+
+.beamed-sixteenth{
+    padding: 10px 0 30px 0;
+    font-size: 75px;
+    color: #debff6;
+}
+
+.note {
+    font-size: 78px;
+    color: #000000;
+    padding: 10px 0 0 0; /* top right bottom left */
+}
+
+.top {
+    display: flex;
+    gap: 40px;
+    z-index: 1;
+    justify-content: flex-start;
+    width: 100%;
+}

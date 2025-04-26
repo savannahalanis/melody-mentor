@@ -1,4 +1,4 @@
-import Navbar from '../components/Navbar'; // Correct if Navbar.jsx is in components folder!
+import './Home.css'
 
 function Home() {
   return (
@@ -9,36 +9,29 @@ function Home() {
       justifyContent: 'center',
       gap: '20px',
     }}>
-      <div style = {{
-        padding: '20px',
-        backgroundColor: '#201f29',
-        borderRadius: '25px',
-      }}>
-        <h1>What is NAME?</h1>
-          <p>Name is your personal AI music teacher! Upload vidoes and NAME will give you personalized advice on how to improve. WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS </p>
+      <div className = "box"> 
+        <h1>What is Melody Mentor?</h1>
+          <p>Melody Mentor is your personal AI music teacher! Upload vidoes of you playin an instrument and get personalized feedback. We'll help you with any instrument, from guitar, flute, piano, xylophone, and more!</p>
       </div>
+
       <div style={{
         display: 'flex',
         flexDirection: 'row',
         justifyContent: 'center',
         gap: '20px',
       }}>
-        <div style={{
-          padding: '20px',
-          backgroundColor: '#201f29',
-          borderRadius: '25px',
-        }}> 
+
+        <div className = "box"> 
           <h1>Our Mission</h1>
-          <p>Here at NAME we want to make music education more accessible. WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS </p>
+          <p>Here at Melody Mentor, we're on a mission to make music education more accessible. Music education is important, yet it is often underfunded or neglected in schools. </p>
         </div>
-        <div style={{
-          padding: '20px',
-          backgroundColor: '#201f29',
-          borderRadius: '25px',
-        }}> 
-          <h1>About is</h1>
-          <p>Here at NAME we want to make music education more accessible. WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS WORDS </p>
+
+        <div className = "box"> 
+          <h1>About Us</h1>
+          <p>Melody Mentor was created by Ava, Savannah, Cathleen, and Sakshi at LA Hacks.</p>
         </div>
+
+
       </div>
     </div>
   );
