@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import Navbar from '../components/Navbar';
 
 function Play() {
   const videoRef = useRef(null);
