@@ -74,15 +74,70 @@ function Play() {
         <h1>Play Page</h1>
         <p>Here is where most of the functionality will go.</p>
 
-        <div style={{ marginBottom: '10px' }}>
-          <input type="file" accept="video/mp4" onChange={handleUpload} />
+        <div style={{ marginBottom: '20px' }}>
+          <label 
+            htmlFor="file-upload" 
+            style={{
+              display: 'inline-block',
+              padding: '12px 24px',
+              backgroundColor: '#3373D4',
+              color: 'white',
+              borderRadius: '25px',
+              cursor: 'pointer',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
+              transition: 'transform 0.2s, box-shadow 0.2s',
+            }}
+          >
+            Upload Video
+          </label>
+          <input 
+            id="file-upload" 
+            type="file" 
+            accept="video/mp4" 
+            onChange={handleUpload} 
+            style={{ display: 'none' }}
+          />
         </div>
 
-        <div style={{ marginBottom: '10px' }}>
+        <div style={{ marginBottom: '20px' }}>
           {recording ? (
-            <button onClick={stopRecording}>Stop Recording</button>
+            <button 
+              onClick={stopRecording}
+              style={{
+                padding: '12px 24px',
+                backgroundColor: '#f44336',
+                color: 'white',
+                border: 'none',
+                borderRadius: '25px',
+                cursor: 'pointer',
+                fontSize: '16px',
+                fontWeight: 'bold',
+                boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
+                transition: 'transform 0.2s, box-shadow 0.2s',
+              }}
+            >
+              Stop Recording
+            </button>
           ) : (
-            <button onClick={startRecording}>Record Video</button>
+            <button 
+              onClick={startRecording}
+              style={{
+                padding: '12px 24px',
+                backgroundColor: '#2196F3',
+                color: 'white',
+                border: 'none',
+                borderRadius: '25px',
+                cursor: 'pointer',
+                fontSize: '16px',
+                fontWeight: 'bold',
+                boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
+                transition: 'transform 0.2s, box-shadow 0.2s',
+              }}
+            >
+              Record Video
+            </button>
           )}
         </div>
 
@@ -124,9 +179,12 @@ function Play() {
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
+          height: '100vh',
+          backgroundColor: '#f5f5f5',
         }}
       >
         <div
+          id="chat-container"
           style={{
             height: '70%',
             overflowY: 'auto',
@@ -148,7 +206,7 @@ function Play() {
                 style={{
                   display: 'inline-block',
                   padding: '10px',
-                  backgroundColor: msg.sender === 'user' ? '#2642B3' : '#F8D7DA',
+                  backgroundColor: msg.sender === 'user' ? '#2642B3' : '#AC00BF',
                   borderRadius: '10px',
                 }}
               >
@@ -166,9 +224,10 @@ function Play() {
             placeholder="Ask something to the AI..."
             style={{
               width: '100%',
-              padding: '10px',
-              borderRadius: '5px',
+              padding: '12px',
+              borderRadius: '20px',
               border: '1px solid #ccc',
+              fontSize: '16px',
             }}
           />
           <button
@@ -178,6 +237,13 @@ function Play() {
               padding: '10px',
               borderRadius: '5px',
               border: '1px solid #ccc',
+              backgroundColor: '#2642B3',
+              color: 'white',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
+              transition: 'transform 0.2s, box-shadow 0.2s',
             }}
           >
             Send
