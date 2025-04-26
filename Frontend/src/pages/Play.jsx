@@ -179,7 +179,7 @@ function Play() {
     if (currentStep === 1) {
       // Skip the first question about instrument
       setChatMessages(prev => [...prev, { 
-        text: "Great! How can I help you with your instrument today? I can offer technique advice, recommend practice exercises, or analyze your playing.",
+        text: "Great! How can I help you today then? I can offer technique advice, recommend practice exercises, or analyze your playing.",
         sender: 'ai',
         id: Date.now(),
         animate: true
@@ -227,7 +227,7 @@ function Play() {
             color: '#4B0082', 
             marginBottom: '20px',
             fontSize: '28px'
-          }}>Video Recorder</h1>
+          }}>Music Analyzer</h1>
 
           <div style={{ 
             display: 'flex', 
