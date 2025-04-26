@@ -1,0 +1,10 @@
+Pages for website
+- Home (with about information)
+- Sign up
+- Log in
+- Profile 
+- Chatbot 
+
+If time
+- Friending
+
