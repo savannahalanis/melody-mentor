@@ -7,7 +7,9 @@ function Play() {
   const [recording, setRecording] = useState(false);
   const mediaRecorderRef = useRef(null);
   const recordedChunks = useRef([]);
-  const [chatMessages, setChatMessages] = useState([]); // Holds the chat history
+  const [chatMessages, setChatMessages] = useState([
+    { text: "Hello, I'm [INSERT NAME], your guide today. What instrument do you play?", sender: "ai" }, // Default AI message
+  ]); // Holds the chat history
   const [userInput, setUserInput] = useState(''); // Holds user input in the chat
 
   const handleUpload = (e) => {
