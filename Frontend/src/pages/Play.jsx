@@ -1,5 +1,4 @@
 import { useRef, useState } from 'react';
-import Navbar from '../components/Navbar';
 
 function Play() {
   const videoRef = useRef(null);
@@ -71,7 +70,6 @@ function Play() {
 
   return (
     <div style={{ display: 'flex' }}>
-      <Navbar />
       <div style={{ width: '70%', padding: '20px' }}>
         <h1>Play Page</h1>
         <p>Here is where most of the functionality will go.</p>
