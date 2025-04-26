@@ -3,17 +3,38 @@ import os
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
- 
+from flask import Flask
+from flask import request
+from flask_cors import CORS
 
 load_dotenv()
 api_key = os.environ.get('geminikey')
+
+#set up the Flask route 
+app = Flask(__name__)
+CORS(app) #enables CORS for all routes and origins, needed for the cross platform cors is cross-origin
+
+@app.route("/getAdvice", methods = ['POST'])
+def giveAnalysis():
+    #get the files from the frontend
+    video=request.files['video']
+    #video.save('Backend/SavedVideos/uploaded_video.mp4')
+    music = ""
+    if request.form['music'] == 'yes':
+        music=request.files['musicFile']
+        #music.save('Backend/SavedMusic/uploaded_music.pdf')
+    question=request.form['question']
+    prompt = makeQuestions(music, question)
+    response = analyzeVideo(video, music, prompt)
+    return {"advice": response}, 200
+
+
 
 
 #this combined everything that is not the video for the model to take in 
 def makeQuestions(music, questions):
 
     musicQuestion = ""
-
     if music:
         musicQuestion = "The video is playing the music in the sheet music file. Make sure to give feedback based on the music they are playing from this"
 
@@ -36,7 +57,8 @@ def analyzeVideo(video, music,  prompt):
 
     #myVideo = client.files.upload(file=video)
 
-    video_bytes = open(video, 'rb').read()
+    #video_bytes = open(video, 'rb').read()
+    video_bytes = video.read()
 
     videoContent = {'inline_data': {'mime_type':'video/mp4', 'data':video_bytes}}
 
@@ -45,9 +67,10 @@ def analyzeVideo(video, music,  prompt):
 #if there is music also give it to the model
     if music:
         #myMusic = client.files.upload(file = music)
-        music_bytes = open(music,'rb').read()
-        videoContent = {'inline_data': {'mime_type':'application/pdf', 'data':music_bytes}}
-        content.extend([videoContent, prompt])
+        #music_bytes = open(music,'rb').read()
+        music_bytes=music.read()
+        musicContent = {'inline_data': {'mime_type':'application/pdf', 'data':music_bytes}}
+        content.extend([musicContent, prompt])
 
     else:
         content.append(prompt)
@@ -59,10 +82,5 @@ def analyzeVideo(video, music,  prompt):
     return response.text
 
 
-if __name__ == "__main__":
-    video = 'practiceVideo.mp4'
-    music = "score_0.pdf"
-    prompt = makeQuestions(music, "")
-    print(prompt)
-    response = analyzeVideo(video, music, prompt)
-    print(response)
+if __name__ == '__main__':
+    app.run(debug=True)
