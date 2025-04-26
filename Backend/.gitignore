@@ -1,0 +1,2 @@
+#make sure .env file is hidden
+.env
