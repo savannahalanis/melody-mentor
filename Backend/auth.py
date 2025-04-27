@@ -6,6 +6,8 @@ from pymongo import MongoClient
 from dotenv import load_dotenv
 import os
 
+auth_bp = Blueprint('auth', __name__)
+
 load_dotenv()  # Load environment variables from .env file
 
 
@@ -22,7 +24,8 @@ users_collection = db.users  # Collection for users
 # Register route
 @auth_bp.route('/register', methods=['POST'])
 def register():
-    data = request.get_json()
+    # data = request.get_json()
+    data = request.form
 
     if 'email' not in data or 'password' not in data or 'username' not in data:
         return jsonify({"error": "Email, password, and username are required"}), 400
@@ -55,6 +58,7 @@ def register():
 @auth_bp.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
+    # data = request.form
 
     if 'email' not in data or 'password' not in data:
         return jsonify({"error": "Email and password are required to log in"}), 400

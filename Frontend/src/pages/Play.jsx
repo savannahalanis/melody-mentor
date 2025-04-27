@@ -245,7 +245,7 @@ function Play() {
 
       // First start the session with the files
       // In your submitToAI function:
-      const sessionResponse = await fetch('http://localhost:5000/startSession', {
+      const sessionResponse = await fetch('http://localhost:5001/startSession', {
         method: 'POST',
         body: formData,
         credentials: 'include',
@@ -262,7 +262,7 @@ function Play() {
       const adviceFormData = new FormData();
       adviceFormData.append('question', question);
       
-      const adviceResponse = await fetch('http://localhost:5000/getAdvice', {
+      const adviceResponse = await fetch('http://localhost:5001/getAdvice', {
         method: 'POST',
         body: adviceFormData,
         credentials: 'include',
