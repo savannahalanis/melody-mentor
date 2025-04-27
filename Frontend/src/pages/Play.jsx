@@ -78,6 +78,7 @@ function Play() {
       const url = URL.createObjectURL(file);
       setVideoURL(url);
       setCanAnalyze(true); // Enable analysis when video is uploaded
+      setVideoAnalyzed(false);
     }
   };
 
@@ -307,6 +308,91 @@ function Play() {
       }]));
     }
   };
+
+  const newRecording = async () => {
+    if (!videoURL) {
+      alert("Please upload or record a video first");
+      return;
+    }
+    
+    try {
+      // Show loading message
+      setChatMessages(prev => [...prev, { 
+        text: "Submitting new recording...", 
+        sender: 'ai',
+        id: Date.now(),
+        animate: true
+      }]);
+
+      // Create FormData to send files
+      const formData = new FormData();
+      formData.append('userid', userId);
+      
+      // Process video file
+      if (recordedChunks.current.length > 0) {
+        const videoBlob = new Blob(recordedChunks.current, { type: 'video/mp4' });
+        const videoFile = new File([videoBlob], "recorded-video.mp4", { 
+          type: 'video/mp4',
+          lastModified: Date.now() 
+        });
+        formData.append('video', videoFile);
+      } else {
+        const videoInput = document.getElementById('video-upload');
+        if (videoInput.files[0]) {
+          formData.append('video', videoInput.files[0]);
+        } else {
+          alert("Cannot process video. Please try uploading again.");
+          return;
+        }
+      }
+
+      // Add music file if available
+      const hasMusicFile = document.getElementById('music-upload').files[0];
+      formData.append('music', hasMusicFile ? 'yes' : 'no');
+      
+      if (hasMusicFile) {
+        formData.append('musicFile', hasMusicFile);
+      }
+      
+      // Start the session
+      const sessionResponse = await fetch('http://localhost:5001/music/startSession', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+        mode: 'cors'
+      });
+      
+      if (!sessionResponse.ok) {
+        const errorData = await sessionResponse.json();
+        throw new Error(errorData.error || 'Failed to start session');
+      }
+      
+      // Session started successfully
+      setSessionStarted(true);
+
+      // Remove loading message
+      setChatMessages(prev => prev.filter(msg => 
+        msg.text !== "Submitting new recording...").concat([{ 
+        text: "New recording submitted!", 
+        sender: 'ai',
+        id: Date.now(),
+        animate: true
+      }]));
+      
+      // Enable analysis option
+      setCanAnalyze(true);
+      
+    } catch (error) {
+      console.error("Error starting session:", error);
+      setChatMessages(prev => prev.filter(msg => 
+        msg.text !== "Submitting new recording...").concat([{ 
+        text: `Error: ${error.message || "Something went wrong when submitting your new recording. Please refresh."}`, 
+        sender: 'ai',
+        id: Date.now(),
+        animate: true
+      }]));
+    }
+  };
   
 
   const submitToAI = async () => {
@@ -374,6 +460,10 @@ function Play() {
         id: Date.now(),
         animate: true
       }]));
+
+      // Set video analyzed state
+      setVideoAnalyzed(true);
+
     } catch (error) {
       console.error("Error:", error);
       setChatMessages(prev => prev.filter(msg => 
@@ -865,7 +955,36 @@ function Play() {
                         e.currentTarget.style.backgroundColor = '#AE8BE4';
                       }}
                     >
-                      Submit Recording
+                      Start Session
+                    </button>
+                  )}
+
+                  {/* Show submit recording button when video is available and session hasn't started */}
+                  {msg.sender === 'ai' && 
+                  index === chatMessages.length - 1 && 
+                  videoURL && 
+                  !sessionStarted && (
+                    <button
+                      onClick={newRecording}
+                      style={{
+                        backgroundColor: '#AE8BE4',
+                        border: 'none',
+                        borderRadius: '15px',
+                        padding: '8px 15px',
+                        fontSize: '14px',
+                        color: 'white',
+                        cursor: 'pointer',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                        transition: 'all 0.2s ease',
+                      }}
+                      onMouseOver={(e) => {
+                        e.currentTarget.style.backgroundColor = '#5a3a99';
+                      }}
+                      onMouseOut={(e) => {
+                        e.currentTarget.style.backgroundColor = '#AE8BE4';
+                      }}
+                    >
+                      Submit New Recording
                     </button>
                   )}
 
@@ -873,7 +992,8 @@ function Play() {
                 {msg.sender === 'ai' && 
                 index === chatMessages.length - 1 && 
                 videoURL && 
-                canAnalyze && (
+                canAnalyze &&
+                !videoAnalyzed && (
                   <button
                     onClick={submitToAI}
                     style={{
@@ -943,7 +1063,7 @@ function Play() {
               type="text"
               value={userInput}
               onChange={(e) => setUserInput(e.target.value)}
-              placeholder="Ask something to the AI..."
+              placeholder="  Ask something to the AI..."
               style={{
                 width: '100%',
                 padding: '14px 20px',
