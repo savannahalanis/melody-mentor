@@ -9,40 +9,70 @@ function Login() {
     const [registerEmail, setRegisterEmail] = useState('');
     const [registerPassword, setRegisterPassword] = useState('');
     const [registerUsername, setRegisterUsername] = useState('');
-  
+
     const handleLoginSubmit = async (e) => {
         e.preventDefault();
-
+    
         try {
-            const response = await axios.post('http://localhost:5000/login', {
+            const response = await axios.post('http://localhost:5001/auth/login', {
                 email: loginEmail,
                 password: loginPassword
             });
-
-            // Store the JWT token in localStorage or sessionStorage
-            localStorage.setItem('token', response.data.token);
-
-            alert('Login successful!');
+    
+            // Check if the response contains the expected data
+            if (response && response.data) {
+                // Store the JWT token and userId in localStorage
+                localStorage.setItem('token', response.data.token);
+                localStorage.setItem('userId', response.data.userid);
+                localStorage.setItem('username', response.data.username);  // Assuming your backend returns username
+                localStorage.setItem('email', response.data.email);
+    
+                console.log("USERID from login response: ", response.data.userid); // log to check
+    
+                alert('Login successful!');
+            } else {
+                console.error('No data received from login response');
+                alert('Login failed: No data received');
+            }
         } catch (error) {
-            console.error('Login error:', error.response.data.error);
-            alert('Login failed: ' + error.response.data.error);
+            // Check if the error object has a response property
+            if (error.response) {
+                console.error('Login error:', error.response.data.error);
+                alert('Login failed: ' + error.response.data.error);
+            } else {
+                console.error('Error during login:', error.message);
+                alert('Login failed: ' + error.message);
+            }
         }
-      };
-  
-      const handleRegisterSubmit = async (e) => {
+    };    
+
+    const handleRegisterSubmit = async (e) => {
         e.preventDefault();
+
+        const registerFormData = new FormData();
+        registerFormData.append('email', registerEmail);
+        registerFormData.append('password', registerPassword);
+        registerFormData.append('username', registerUsername);
+
         try {
-            const response = await axios.post('http://localhost:5000/register', {
-                email: registerEmail,
-                password: registerPassword,
-                username: registerUsername
+            const response = await fetch('http://localhost:5001/auth/register', {
+                method: 'POST',
+                body: registerFormData,
+                credentials: 'include',
+                mode: 'cors', // explicitly set cors mode
             });
-            alert('Registration successful!');
+
+            if (response.ok) {
+                alert('Registration successful!');
+            } else {
+                const errorData = await response.json();
+                alert('Registration failed: ' + (errorData.error || 'Unknown error'));
+            }
         } catch (error) {
-            console.error('Registration error:', error.response.data.error);
-            alert('Registration failed: ' + error.response.data.error);
+            console.error('Registration error:', error);
+            alert('Registration failed: ' + error.message);
         }
-      };
+    };
 
     return (
         <div style={{
@@ -103,9 +133,8 @@ function Login() {
                     <button type="submit" className="button">Register</button>
                 </form>
             </div>
-      </div>
+        </div>
     );
-  }
-  
-  export default Login;
-  
+}
+
+export default Login;

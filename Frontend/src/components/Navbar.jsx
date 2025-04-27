@@ -88,6 +88,9 @@ function Navbar() {
           <li style={{ marginRight: '20px' }}>
             <Link to="/login" style={linkStyle}> Login </Link>
           </li>
+          <li style={{ marginRight: '20px' }}>
+            <Link to="/profile" style={linkStyle}> Profile </Link>
+          </li>
         </ul>
     </nav>
   );
