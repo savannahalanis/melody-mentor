@@ -11,6 +11,7 @@ function Play() {
   const [chatMessages, setChatMessages] = useState([
     { text: "Hello, I'm Melody Mentor, your guide today. What instrument do you play?", sender: "ai", id: 1, animate: true }
   ]);
+  const [canAnalyze, setCanAnalyze] = useState(false);
   const [userInput, setUserInput] = useState('');
   const [showSkipButton, setShowSkipButton] = useState(true);
   const [currentStep, setCurrentStep] = useState(1);
@@ -67,6 +68,7 @@ function Play() {
     if (file) {
       const url = URL.createObjectURL(file);
       setVideoURL(url);
+      setCanAnalyze(true); // Enable analysis when video is uploaded
     }
   };
 
@@ -92,6 +94,7 @@ function Play() {
       mediaRecorderRef.current.onstop = () => {
         const blob = new Blob(recordedChunks.current, { type: 'video/mp4' });
         setVideoURL(URL.createObjectURL(blob));
+        setCanAnalyze(true); // Enable analysis after recording
         stream.getTracks().forEach(track => track.stop());
       };
 
@@ -198,6 +201,102 @@ function Play() {
     }
   };
 
+  // Add this after handleSkip function and before the return statement
+  const submitToAI = async () => {
+    if (!videoURL) {
+      alert("Please upload or record a video first");
+      return;
+    }
+
+    try {
+      // Show loading message
+      setChatMessages(prev => [...prev, { 
+        text: "Analyzing your performance...", 
+        sender: 'ai',
+        id: Date.now(),
+        animate: true
+      }]);
+
+      // Create FormData to send files
+      const formData = new FormData();
+      
+      // Convert Blob URL back to File object if it's a recorded video
+      if (recordedChunks.current.length > 0) {
+        const videoBlob = new Blob(recordedChunks.current, { type: 'video/mp4' });
+        formData.append('video', videoBlob, 'recorded-video.mp4');
+      } else {
+        // For uploaded video, we need to fetch the file from input
+        const videoInput = document.getElementById('video-upload');
+        if (videoInput.files[0]) {
+          formData.append('video', videoInput.files[0]);
+        } else {
+          alert("Cannot process video. Please try uploading again.");
+          return;
+        }
+      }
+      
+      // Add info about whether music is included
+      const hasMusicFile = document.getElementById('music-upload').files[0];
+      formData.append('music', hasMusicFile ? 'yes' : 'no');
+      
+      // Add music file if available
+      if (hasMusicFile) {
+        formData.append('musicFile', hasMusicFile);
+      }
+
+      // First start the session with the files
+      // In your submitToAI function:
+      const sessionResponse = await fetch('http://localhost:5000/startSession', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+        mode: 'cors' // explicitly set cors mode
+      });
+
+      if (!sessionResponse.ok) {
+        const errorData = await sessionResponse.json();
+        throw new Error(errorData.error || 'Failed to start session');
+      }
+      
+      // Then send the question to get advice
+      const question = "Please analyze my playing technique and provide feedback";
+      const adviceFormData = new FormData();
+      adviceFormData.append('question', question);
+      
+      const adviceResponse = await fetch('http://localhost:5000/getAdvice', {
+        method: 'POST',
+        body: adviceFormData,
+        credentials: 'include',
+        mode: 'cors' // explicitly set cors mode
+      });
+
+      if (!adviceResponse.ok) {
+        const errorData = await adviceResponse.json();
+        throw new Error(errorData.error || 'Failed to get advice');
+      }
+
+      const responseData = await adviceResponse.json();
+      
+      // Add AI response
+      setChatMessages(prev => prev.filter(msg => 
+        msg.text !== "Analyzing your performance...").concat([{ 
+        text: responseData.advice, 
+        sender: 'ai',
+        id: Date.now(),
+        animate: true
+      }]));
+    } catch (error) {
+      console.error("Error:", error);
+      setChatMessages(prev => prev.filter(msg => 
+        msg.text !== "Analyzing your performance...").concat([{ 
+        text: `Error: ${error.message || "Something went wrong when analyzing your performance."}`, 
+        sender: 'ai',
+        id: Date.now(),
+        animate: true
+      }]));
+    }
+  };
+
   return (
     <div style={{ 
       display: 'flex', 
@@ -284,7 +383,7 @@ function Play() {
             <input 
               id="music-upload" 
               type="file" 
-              accept="audio/*" 
+              accept="application/pdf" 
               onChange={handleMusicUpload} 
               style={{ display: 'none' }}
             />
@@ -349,7 +448,7 @@ function Play() {
               transition: 'all 0.3s ease',
               border: '3px solid #d8c3ff',
             }}
-          >
+          >          
             {videoURL ? (
               <video
                 ref={videoRef}
@@ -566,7 +665,7 @@ function Play() {
                   style={{
                     display: 'inline-block',
                     padding: '12px 16px',
-                    backgroundColor: msg.sender === 'user' ? '#9370DB' : '#B19CD9',
+                    backgroundColor: msg.sender === 'user' ? '#7382E8' : '#9892F3',
                     color: 'white',
                     borderRadius: msg.sender === 'user' ? '18px 18px 0 18px' : '18px 18px 18px 0',
                     maxWidth: '80%',
@@ -576,22 +675,24 @@ function Play() {
                 >
                   {msg.text}
                 </div>
-                
-                {/* Show skip button only after AI messages when appropriate */}
-                {msg.sender === 'ai' && 
-                index === chatMessages.length - 1 && 
-                showSkipButton && 
-                currentStep <= 2 && (
-                  <div 
-                    style={{
-                      marginTop: '8px',
-                      display: 'flex',
-                      justifyContent: msg.sender === 'user' ? 'flex-end' : 'flex-start',
-                      animation: 'fadeIn 0.5s forwards',
-                      animationDelay: '0.5s',
-                      opacity: 0
-                    }}
-                  >
+
+                {/* Action buttons area */}
+                <div 
+                  style={{
+                    marginTop: '8px',
+                    display: 'flex',
+                    justifyContent: msg.sender === 'user' ? 'flex-end' : 'flex-start',
+                    animation: 'fadeIn 0.5s forwards',
+                    animationDelay: '0.5s',
+                    opacity: msg.animate ? 0 : 1,
+                    gap: '8px'
+                  }}
+                >
+                  {/* Show skip button when appropriate */}
+                  {msg.sender === 'ai' && 
+                  index === chatMessages.length - 1 && 
+                  showSkipButton && 
+                  currentStep <= 2 && (
                     <button
                       onClick={handleSkip}
                       style={{
@@ -614,10 +715,39 @@ function Play() {
                     >
                       Skip
                     </button>
-                  </div>
+                )}
+
+                {/* Show analyze button when video is available and this is the latest message */}
+                {msg.sender === 'ai' && 
+                index === chatMessages.length - 1 && 
+                videoURL && 
+                canAnalyze && (
+                  <button
+                    onClick={submitToAI}
+                    style={{
+                      backgroundColor: '#6C4AB6',
+                      border: 'none',
+                      borderRadius: '15px',
+                      padding: '8px 15px',
+                      fontSize: '14px',
+                      color: 'white',
+                      cursor: 'pointer',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                      transition: 'all 0.2s ease',
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.backgroundColor = '#5a3a99';
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.backgroundColor = '#6C4AB6';
+                    }}
+                  >
+                    Analyze My Playing
+                  </button>
                 )}
               </div>
-            ))}
+            </div>
+          ))}
           </div>
 
           {/* Input Area */}

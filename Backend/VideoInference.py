@@ -11,9 +11,19 @@ load_dotenv()
 api_key = os.environ.get('geminikey')
 
 #set up the Flask route 
+# app = Flask(__name__)
+# CORS(app) #enables CORS for all routes and origins, needed for the cross platform cors is cross-origin
+# app.secret_key= os.environ.get('sessionkey')
+
+# Replace the simple CORS setup with:
+# Replace the existing CORS setup with this:
 app = Flask(__name__)
-CORS(app) #enables CORS for all routes and origins, needed for the cross platform cors is cross-origin
-app.secret_key= os.environ.get('sessionkey')
+CORS(app, 
+     supports_credentials=True, 
+     origins=["http://localhost:5173", "http://localhost:5174"],
+     allow_headers=["Content-Type", "Authorization"],
+     methods=["GET", "POST", "OPTIONS"])
+app.secret_key = os.environ.get('sessionkey')
 
 
 #if you make this a posat request everytime you submit your music then itll just get overriden each time which is good 
@@ -74,7 +84,7 @@ def save_video(video):
 def save_music(music, session_id):
     music_path = f'SavedMusic{session_id}.pdf'
     music.save(music_path)
-
+    return music_path
 
 #this combined everything that is not the video for the model to take in 
 def makeQuestions(music, questions):
@@ -127,4 +137,4 @@ def analyzeVideo(video, music,  prompt):
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, host='0.0.0.0', port=5000)
