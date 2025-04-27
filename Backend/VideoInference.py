@@ -36,7 +36,7 @@ def start_session():
     )
         users_collection.update_one(
             {"_id": ObjectId(userID)},
-            {"$push": {"memory": session_data}}  # Add session data to the user's memory field
+            {"$push": {"memory": session_data.text}}  # Add session data to the user's memory field
         )
 
         #Clear the previous session

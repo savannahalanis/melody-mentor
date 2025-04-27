@@ -22,7 +22,7 @@ function Play() {
   // Add this to your state variables
   //const [userId, setUserId] = useState(localStorage.getItem('userId') || '');
   
-  const [userId, setUserId] = useState(["680d6d9bb3cdbb04bc5d0c9e"]); // Replace with actual user ID logic
+  const [userId, setUserId] = useState("680d6d9bb3cdbb04bc5d0c9e"); // Replace with actual user ID logic
 
   // State for resizable panels
   const [leftPanelWidth, setLeftPanelWidth] = useState(70);
@@ -110,6 +110,7 @@ function Play() {
         console.error("Video element reference is null");
         throw new Error("Video element not initialized");
       }
+
       mediaRecorderRef.current = new MediaRecorder(stream);
 
       recordedChunks.current = [];
@@ -119,14 +120,11 @@ function Play() {
 
       mediaRecorderRef.current.onstop = () => {
         const blob = new Blob(recordedChunks.current, { type: 'video/mp4' });
-        const newVideoURL = URL.createObjectURL(blob); // Create and store URL in a variable
-        setVideoURL(newVideoURL);
-        
+        setVideoURL(URL.createObjectURL(blob));
         if (videoRef.current) {
           videoRef.current.srcObject = null;
-          videoRef.current.src = newVideoURL;
+          videoRef.current.src = newVideoURL; // Fixed: use the stored variable
         }
-
         setCanAnalyze(true); // Enable analysis after recording
         stream.getTracks().forEach(track => track.stop());
       };
@@ -261,17 +259,11 @@ function Play() {
         });
         formData.append('video', videoFile);
       } else {
-        try {
-          const response = await fetch(videoURL);
-          const blob = await response.blob();
-          const videoFile = new File([blob], "video-from-url.mp4", {
-            type: 'video/mp4',
-            lastModified: Date.now()
-          });
-          formData.append('video', videoFile);
-        } catch (fetchError) {
-          console.error("Error fetching video from URL:", fetchError);
-          alert("Cannot process video from URL. Please try uploading again.");
+        const videoInput = document.getElementById('video-upload');
+        if (videoInput.files[0]) {
+          formData.append('video', videoInput.files[0]);
+        } else {
+          alert("Cannot process video. Please try uploading again.");
           return;
         }
       }
