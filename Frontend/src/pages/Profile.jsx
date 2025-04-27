@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom'; 
+import './Profile.css';
 
 function Home() {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [userID, setUserID] = useState('');
+  const navigate = useNavigate(); 
 
   useEffect(() => {
     // Fetch user profile
@@ -26,6 +29,20 @@ function Home() {
     }
   }, []);
 
+  // Logout function
+  const logout = () => {
+    // Clear token from local storage
+    localStorage.clear();
+    
+    const goToPageAndReload = (path) => {
+      navigate(path, { replace: true, state: { reload: true } });
+      window.location.reload();
+    };
+
+    goToPageAndReload('/login');
+
+  };
+
   return (
     <div style={{
       padding: '25px',
@@ -38,7 +55,7 @@ function Home() {
         <h1>Your Profile</h1>
         <p><b>Username</b> {username}</p>
         <p><b>Email</b> {email}</p>
-        <p><b>UserID</b> {userID}</p>
+        <button className="button" onClick={logout}>Logout</button>
       </div>
     </div>
   );

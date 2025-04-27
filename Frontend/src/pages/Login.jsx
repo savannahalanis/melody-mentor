@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import './Login.css'
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 function Login() {
@@ -10,8 +11,20 @@ function Login() {
     const [registerPassword, setRegisterPassword] = useState('');
     const [registerUsername, setRegisterUsername] = useState('');
 
+    const navigate = useNavigate();
+
+    const goToPageAndReload = (path) => {
+        navigate(path, { replace: true, state: { reload: true } });
+        window.location.reload();
+      };
+
     const handleLoginSubmit = async (e) => {
         e.preventDefault();
+
+        if (!checkEmail(loginEmail)) {
+            alert('Please enter a valid email');
+            return;
+        }
     
         try {
             const response = await axios.post('http://localhost:5001/auth/login', {
@@ -29,7 +42,7 @@ function Login() {
     
                 console.log("USERID from login response: ", response.data.userid); // log to check
     
-                alert('Login successful!');
+                goToPageAndReload('/play');
             } else {
                 console.error('No data received from login response');
                 alert('Login failed: No data received');
@@ -46,6 +59,16 @@ function Login() {
         }
     };    
 
+    function checkUsername(username) {
+        const usernameRegex = /^[a-zA-Z0-9]+$/;
+        return usernameRegex.test(username)
+    }
+
+    function checkEmail(email) {
+        const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+        return emailRegex.test(email);
+    }
+
     const handleRegisterSubmit = async (e) => {
         e.preventDefault();
 
@@ -54,23 +77,30 @@ function Login() {
         registerFormData.append('password', registerPassword);
         registerFormData.append('username', registerUsername);
 
-        try {
-            const response = await fetch('http://localhost:5001/auth/register', {
-                method: 'POST',
-                body: registerFormData,
-                credentials: 'include',
-                mode: 'cors', // explicitly set cors mode
-            });
+        if (!checkEmail(registerEmail)) {
+            alert('Please enter a valid email');
+        } else if (!checkUsername(registerUsername)) {
+            alert('Username can only consist of letters and nummbers');
+        } else {
 
-            if (response.ok) {
-                alert('Registration successful!');
-            } else {
-                const errorData = await response.json();
-                alert('Registration failed: ' + (errorData.error || 'Unknown error'));
+            try {
+                const response = await fetch('http://localhost:5001/auth/register', {
+                    method: 'POST',
+                    body: registerFormData,
+                    credentials: 'include',
+                    mode: 'cors', // explicitly set cors mode
+                });
+
+                if (response.ok) {
+                    alert('Registration successful!');
+                } else {
+                    const errorData = await response.json();
+                    alert('Registration failed: ' + (errorData.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Registration error:', error);
+                alert('Registration failed: ' + error.message);
             }
-        } catch (error) {
-            console.error('Registration error:', error);
-            alert('Registration failed: ' + error.message);
         }
     };
 
