@@ -11,18 +11,19 @@ function Play() {
     { text: "Hello, I'm Melody Mentor, your guide today. Please upload a video of your playing or record yourself directly. You can also upload sheet music for more detailed analysis.", sender: "ai", id: 1, animate: true }
   ]);
   const [userInput, setUserInput] = useState('');
-  const [currentStep, setCurrentStep] = useState(1);
+  // const [currentStep, setCurrentStep] = useState(1);
   const chatContainerRef = useRef(null);
 
   // Update your state variables to track the session state
   const [sessionStarted, setSessionStarted] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [canAnalyze, setCanAnalyze] = useState(false);
+  const [videoAnalyzed, setVideoAnalyzed] = useState(false);
   
   // Add this to your state variables
-  //const [userId, setUserId] = useState(localStorage.getItem('userId') || '');
+  const [userId, setUserId] = useState(localStorage.getItem('userId') || '');
   
-  const [userId, setUserId] = useState("680d6d9bb3cdbb04bc5d0c9e"); // Replace with actual user ID logic
+  // const [userId, setUserId] = useState("680d6d9bb3cdbb04bc5d0c9e"); // Replace with actual user ID logic
 
   // State for resizable panels
   const [leftPanelWidth, setLeftPanelWidth] = useState(70);
@@ -36,15 +37,6 @@ function Play() {
     }
   }, [chatMessages]);
 
-  // useEffect(() => {
-  //   // Return cleanup function
-  //   return () => {
-  //     // Save session when component unmounts
-  //     if (userId && chatMessages.length > 1) {
-  //       endSession();
-  //     }
-  //   };
-  // }, [userId, chatMessages]);
 
   // Handle resizing logic
   const handleMouseDown = (e) => {
@@ -315,6 +307,7 @@ function Play() {
       }]));
     }
   };
+  
 
   const submitToAI = async () => {
     if (!videoURL) {
@@ -422,6 +415,33 @@ function Play() {
       });
 
       console.log("Session saved successfully");
+
+      // Reset the state to start fresh
+      setVideoURL(null);
+      setMusicURL(null);
+      setSessionStarted(false);
+      setCanAnalyze(false);
+      setVideoAnalyzed(false);
+      
+      // Reset chat to initial greeting
+      setChatMessages([
+        { 
+          text: "Hello, I'm Melody Mentor, your guide today. Please upload a video of your playing or record yourself directly. You can also upload sheet music for more detailed analysis.", 
+          sender: "ai", 
+          id: Date.now(), 
+          animate: true 
+        }
+      ]);
+
+      // Clear file inputs
+      const videoInput = document.getElementById('video-upload');
+      const musicInput = document.getElementById('music-upload');
+      if (videoInput) videoInput.value = '';
+      if (musicInput) musicInput.value = '';
+      
+      // Reset any recorded chunks
+      recordedChunks.current = [];
+
     } catch (error) {
       console.error("Error saving session:", error);
     }
@@ -765,31 +785,6 @@ function Play() {
             }}>your personal instrument guider</p>
           </div>
 
-          {userId && (
-            <button
-              onClick={endSession}
-              style={{
-                backgroundColor: '#f0f0f0',
-                border: 'none',
-                borderRadius: '15px',
-                padding: '8px 15px',
-                fontSize: '14px',
-                color: '#7382E8',
-                cursor: 'pointer',
-                boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
-                transition: 'all 0.2s ease',
-              }}
-              onMouseOver={(e) => {
-                e.currentTarget.style.backgroundColor = '#e0e0e0';
-              }}
-              onMouseOut={(e) => {
-                e.currentTarget.style.backgroundColor = '#f0f0f0';
-              }}
-            >
-              End Session
-            </button>
-          )}
-
           {/* Chat Messages */}
           <div
             id="chat-container"
@@ -821,7 +816,7 @@ function Play() {
                   style={{
                     display: 'inline-block',
                     padding: '12px 16px',
-                    backgroundColor: msg.sender === 'user' ? '#7382E8' : '#9892F3',
+                    backgroundColor: msg.sender === 'user' ? '#7382E8' : '#AD98E6',
                     color: 'white',
                     borderRadius: msg.sender === 'user' ? '18px 18px 0 18px' : '18px 18px 18px 0',
                     maxWidth: '80%',
@@ -837,6 +832,7 @@ function Play() {
                   style={{
                     marginTop: '8px',
                     display: 'flex',
+                    alignItems: 'center',
                     justifyContent: msg.sender === 'user' ? 'flex-end' : 'flex-start',
                     animation: 'fadeIn 0.5s forwards',
                     animationDelay: '0.5s',
@@ -852,7 +848,7 @@ function Play() {
                     <button
                       onClick={startSession}
                       style={{
-                        backgroundColor: '#6C4AB6',
+                        backgroundColor: '#AE8BE4',
                         border: 'none',
                         borderRadius: '15px',
                         padding: '8px 15px',
@@ -866,7 +862,7 @@ function Play() {
                         e.currentTarget.style.backgroundColor = '#5a3a99';
                       }}
                       onMouseOut={(e) => {
-                        e.currentTarget.style.backgroundColor = '#6C4AB6';
+                        e.currentTarget.style.backgroundColor = '#AE8BE4';
                       }}
                     >
                       Submit Recording
@@ -881,7 +877,7 @@ function Play() {
                   <button
                     onClick={submitToAI}
                     style={{
-                      backgroundColor: '#6C4AB6',
+                      backgroundColor: '#7165E2',
                       border: 'none',
                       borderRadius: '15px',
                       padding: '8px 15px',
@@ -892,16 +888,47 @@ function Play() {
                       transition: 'all 0.2s ease',
                     }}
                     onMouseOver={(e) => {
-                      e.currentTarget.style.backgroundColor = '#5a3a99';
+                      e.currentTarget.style.backgroundColor = '#A098E6';
                     }}
                     onMouseOut={(e) => {
-                      e.currentTarget.style.backgroundColor = '#6C4AB6';
+                      e.currentTarget.style.backgroundColor = '#7165E2';
                     }}
                   >
                     Analyze My Playing
                   </button>
                 )}
               </div>
+
+              {/* End Session button - shows below analyze button and only on the last message */}
+              {msg.sender === 'ai' &&
+              index === chatMessages.length - 1 &&
+              userId &&
+              sessionStarted && (
+                <button
+                  onClick={endSession}
+                  style={{
+                    backgroundColor: '#3B61DE',
+                    border: 'none',
+                    borderRadius: '15px',
+                    padding: '8px 15px',
+                    fontSize: '14px',
+                    marginTop: '5px',
+                    color: 'white',
+                    cursor: 'pointer',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                    transition: 'all 0.2s ease',
+                    alignSelf: msg.sender === 'user' ? 'flex-end' : 'flex-start',
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.backgroundColor = '#94A9EE';
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.backgroundColor = '#3B61DE';
+                  }}
+                >
+                  End Session
+                  </button>
+            )}
             </div>
           ))}
           </div>
