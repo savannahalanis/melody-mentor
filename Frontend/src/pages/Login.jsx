@@ -60,9 +60,15 @@ function Login() {
     };    
 
     function checkUsername(username) {
-        const usernameRegex = /^[a-zA-Z0-9]+$/;
+        const usernameRegex = /^[a-zA-Z0-9_]+$/;
         return usernameRegex.test(username)
     }
+
+    function checkPassword(password) {
+        const usernamePassword = /^.{7,}$/;
+        return usernamePassword.test(password)
+    }
+
 
     function checkEmail(email) {
         const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
@@ -80,7 +86,9 @@ function Login() {
         if (!checkEmail(registerEmail)) {
             alert('Please enter a valid email');
         } else if (!checkUsername(registerUsername)) {
-            alert('Username can only consist of letters and nummbers');
+            alert('Username can only consist of letters, numbers, and underscore');
+        } else if (!checkPassword(registerPassword)) {
+            alert('Password must be at least 7 characters long');
         } else {
 
             try {

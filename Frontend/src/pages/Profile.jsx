@@ -54,7 +54,7 @@ function Home() {
       <div className="box">
         <h1>Your Profile</h1>
         <p><b>Username</b> {username}</p>
-        <p><b>Email</b> {email}</p>
+        <p><b>Email</b> {email}</p><br></br>
         <button className="button" onClick={logout}>Logout</button>
       </div>
     </div>

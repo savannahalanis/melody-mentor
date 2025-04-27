@@ -7,18 +7,18 @@ function Home() {
       display: 'flex',
       flexDirection: 'column',
       justifyContent: 'center',
-      gap: '20px',
+      gap: '0',
     }}>
       <div className = "box"> 
         <h1>What is Melody Mentor?</h1>
-          <p>Melody Mentor is your personal AI music teacher! Upload vidoes of you playin an instrument and get personalized feedback. We'll help you with any instrument, from guitar, flute, piano, xylophone, and more!</p>
+          <p>Melody Mentor is your personal AI music teacher. Upload vidoes of you playin an instrument and get personalized feedback. We'll help you with any instrument, from guitar, flute, piano, xylophone, and more!</p>
       </div>
 
       <div style={{
         display: 'flex',
         flexDirection: 'row',
         justifyContent: 'center',
-        gap: '20px',
+        gap: '0',
       }}>
 
         <div className = "box"> 
