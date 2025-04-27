@@ -1,8 +1,19 @@
 import { Link } from 'react-router-dom';
 import logo from '../assets/logo.png';
 import './Navbar.css';
+import { useState, useEffect } from 'react';
 
 function Navbar() {
+  const [userID, setUserID] = useState(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      setUserID(true);
+    }
+  }, []);
+  
+
   return (
     <nav>
       <div style={{
@@ -80,17 +91,23 @@ function Navbar() {
           color: '#deaae2',
         }}>
           <li style={{ marginRight: '20px' }}>
-            <Link to="/" style={linkStyle}>Home</Link>
+                <Link to="/" style={linkStyle}>Home</Link>
           </li>
-          <li style={{ marginRight: '20px' }}>
-            <Link to="/play" style={linkStyle}> Play </Link>
-          </li>
-          <li style={{ marginRight: '20px' }}>
-            <Link to="/login" style={linkStyle}> Login </Link>
-          </li>
-          <li style={{ marginRight: '20px' }}>
-            <Link to="/profile" style={linkStyle}> Profile </Link>
-          </li>
+
+          {userID ? (
+              <>
+                <li style={{ marginRight: '20px' }}>
+                  <Link to="/play" style={linkStyle}> Play </Link>
+                </li>
+                <li style={{ marginRight: '20px' }}>
+                  <Link to="/profile" style={linkStyle}> Profile </Link>
+                </li>
+              </>
+             ) : (
+              <li style={{ marginRight: '20px' }}>
+                <Link to="/login" style={linkStyle}> Login </Link>
+              </li>
+          )}
         </ul>
     </nav>
   );
