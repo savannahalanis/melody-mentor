@@ -101,7 +101,7 @@ def save_video(video):
     return session_id, video_path
 
 def save_music(music, session_id):
-    music_path = f'SavedMusic{session_id}.pdf'
+    music_path = f'SavedMusic/{session_id}.pdf'
     music.save(music_path)
     return music_path
 
