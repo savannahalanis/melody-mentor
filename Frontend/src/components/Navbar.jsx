@@ -35,7 +35,7 @@ function Navbar() {
             <div key={index} style={{
               width: '100%',
               height: '1px',
-              backgroundColor: '#debff6',
+              backgroundColor: '#9d7db5',
             }}></div>
           ))}
         </div>
@@ -77,6 +77,7 @@ function Navbar() {
           listStyle: 'none',
           justifyContent: 'center',
           padding: '5px 0 20px 0',
+          color: '#deaae2',
         }}>
           <li style={{ marginRight: '20px' }}>
             <Link to="/" style={linkStyle}>Home</Link>
