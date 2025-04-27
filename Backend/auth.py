@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from pymongo import MongoClient
 from dotenv import load_dotenv
 import os
+from bson import ObjectId
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -82,7 +83,12 @@ def login():
     }, JWT_SECRET, algorithm='HS256')
 
 #also return a unique uername to be used
-    return jsonify({"token": token,'user': str(user['_id']) }), 200
+    return jsonify({
+        "token": token,
+        "userid": str(user['_id']),
+        "username": user['username'],
+        "email": user['email']
+    }), 200
 
 # Example protected route
 @auth_bp.route('/protected', methods=['GET'])
@@ -102,3 +108,32 @@ def protected():
         return jsonify({"error": "Invalid token"}), 401
 
     return jsonify({"message": f"Hello user {user_id}"})
+
+
+@auth_bp.route('/profile', methods=['GET'])
+def profile():
+    token = request.headers.get('Authorization')
+    if not token:
+        return jsonify({"error": "Token is missing!"}), 401
+
+    try:
+        # Remove "Bearer " from the token
+        token = token.split(" ")[1]
+        payload = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
+        user_id = payload['user_id']
+        
+        # Get the user profile data from the database
+        user = users_collection.find_one({"_id": ObjectId(user_id)})
+        if not user:
+            return jsonify({"error": "User not found!"}), 404
+
+        return jsonify({
+            "username": user["username"],
+            "email": user["email"],
+            "userID": str(user["_id"])
+        }), 200
+    
+    except jwt.ExpiredSignatureError:
+        return jsonify({"error": "Token has expired"}), 401
+    except jwt.InvalidTokenError:
+        return jsonify({"error": "Invalid token"}), 401

@@ -12,22 +12,39 @@ function Login() {
 
     const handleLoginSubmit = async (e) => {
         e.preventDefault();
-
+    
         try {
             const response = await axios.post('http://localhost:5001/auth/login', {
                 email: loginEmail,
                 password: loginPassword
-            });            
-
-            // Store the JWT token in localStorage or sessionStorage
-            localStorage.setItem('token', response.data.token);
-
-            alert('Login successful!');
+            });
+    
+            // Check if the response contains the expected data
+            if (response && response.data) {
+                // Store the JWT token and userId in localStorage
+                localStorage.setItem('token', response.data.token);
+                localStorage.setItem('userId', response.data.userid);
+                localStorage.setItem('username', response.data.username);  // Assuming your backend returns username
+                localStorage.setItem('email', response.data.email);
+    
+                console.log("USERID from login response: ", response.data.userid); // log to check
+    
+                alert('Login successful!');
+            } else {
+                console.error('No data received from login response');
+                alert('Login failed: No data received');
+            }
         } catch (error) {
-            console.error('Login error:', error.response.data.error);
-            alert('Login failed: ' + error.response.data.error);
+            // Check if the error object has a response property
+            if (error.response) {
+                console.error('Login error:', error.response.data.error);
+                alert('Login failed: ' + error.response.data.error);
+            } else {
+                console.error('Error during login:', error.message);
+                alert('Login failed: ' + error.message);
+            }
         }
-    };
+    };    
 
     const handleRegisterSubmit = async (e) => {
         e.preventDefault();
