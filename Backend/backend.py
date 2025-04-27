@@ -14,12 +14,14 @@ app = Flask(__name__)
 app.secret_key = os.environ.get('sessionkey')
 
 # Enable CORS
-CORS(app)  # This will allow all origins for all routes
+CORS(app, supports_credentials=True,
+     allow_headers=["Content-Type", "Authorization", "Origin"])
 
 # Register blueprints
 app.register_blueprint(auth_bp, url_prefix="/auth")
 app.register_blueprint(music_bp, url_prefix="/music")
 
+
 # Run the app
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, port=5001)

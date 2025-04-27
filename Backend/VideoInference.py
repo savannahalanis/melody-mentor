@@ -16,6 +16,7 @@ api_key = os.environ.get('geminikey')
 
 #set up the Flask route 
 music_bp = Blueprint('music', __name__)
+CORS(music_bp, supports_credentials=True)
 
  #for now working with inline and hoping that is faster
 clientGem = genai.Client(api_key=api_key)
@@ -35,7 +36,7 @@ def start_session():
     )
         users_collection.update_one(
             {"_id": ObjectId(userID)},
-            {"$push": {"memory": session_data}}  # Add session data to the user's memory field
+            {"$push": {"memory": session_data.text}}  # Add session data to the user's memory field
         )
 
         #Clear the previous session

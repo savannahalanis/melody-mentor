@@ -8,14 +8,24 @@ function Play() {
   const mediaRecorderRef = useRef(null);
   const recordedChunks = useRef([]);
   const [chatMessages, setChatMessages] = useState([
-    { text: "Hello, I'm Melody Mentor, your guide today. What instrument do you play?", sender: "ai", id: 1, animate: true }
+    { text: "Hello, I'm Melody, your music guide today. Please upload a video of your playing or record yourself directly. You can also upload sheet music for more detailed analysis.", sender: "ai", id: 1, animate: true }
   ]);
-  const [canAnalyze, setCanAnalyze] = useState(false);
   const [userInput, setUserInput] = useState('');
-  const [showSkipButton, setShowSkipButton] = useState(true);
-  const [currentStep, setCurrentStep] = useState(1);
+  // const [currentStep, setCurrentStep] = useState(1);
   const chatContainerRef = useRef(null);
+
+  // Update your state variables to track the session state
+  const [sessionStarted, setSessionStarted] = useState(false);
+  const [canAnalyze, setCanAnalyze] = useState(false);
+  const [videoAnalyzed, setVideoAnalyzed] = useState(false);
+
+  const [newVideo, setNewVideo] = useState(false);
   
+  // Add this to your state variables
+  const [userId, setUserId] = useState(localStorage.getItem('userId') || '');
+  
+  // const [userId, setUserId] = useState("680d6d9bb3cdbb04bc5d0c9e"); // Replace with actual user ID logic
+
   // State for resizable panels
   const [leftPanelWidth, setLeftPanelWidth] = useState(70);
   const [isDragging, setIsDragging] = useState(false);
@@ -27,6 +37,7 @@ function Play() {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [chatMessages]);
+
 
   // Handle resizing logic
   const handleMouseDown = (e) => {
@@ -67,7 +78,9 @@ function Play() {
     if (file) {
       const url = URL.createObjectURL(file);
       setVideoURL(url);
-      setCanAnalyze(true); // Enable analysis when video is uploaded
+    }
+    if (sessionStarted) {
+      setNewVideo(true);
     }
   };
 
@@ -81,8 +94,18 @@ function Play() {
 
   const startRecording = async () => {
     try {
+      setSessionStarted(false);
+      setRecording(true);
+
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      videoRef.current.srcObject = stream;
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      } else {
+        console.error("Video element reference is null");
+        throw new Error("Video element not initialized");
+      }
+
       mediaRecorderRef.current = new MediaRecorder(stream);
 
       recordedChunks.current = [];
@@ -93,12 +116,16 @@ function Play() {
       mediaRecorderRef.current.onstop = () => {
         const blob = new Blob(recordedChunks.current, { type: 'video/mp4' });
         setVideoURL(URL.createObjectURL(blob));
+        if (videoRef.current) {
+          videoRef.current.srcObject = null;
+          videoRef.current.src = newVideoURL; // Fixed: use the stored variable
+        }
         setCanAnalyze(true); // Enable analysis after recording
         stream.getTracks().forEach(track => track.stop());
       };
 
       mediaRecorderRef.current.start();
-      setRecording(true);
+
     } catch (err) {
       console.error("Error accessing media devices:", err);
       alert("Could not access camera or microphone. Please check your permissions.");
@@ -123,94 +150,92 @@ function Play() {
       }]);
       
       // Clear input
+      const currentInput = userInput;
       setUserInput('');
       
-      // Hide skip button
-      setShowSkipButton(false);
-      
-      // Determine which AI response to show based on current step
-      if (currentStep === 1) {
-        // After they respond to "What instrument do you play?"
+      // If session hasn't started yet, remind user to start a session
+      if (!sessionStarted) {
         setTimeout(() => {
           setChatMessages(prev => [...prev, { 
-            text: "Great choice! How can I help you with your instrument today? I can offer technique advice, recommend practice exercises, or analyze your playing.",
+            text: "Please upload or record a video, and click 'Submit Recording' to start a session before we continue.",
             sender: 'ai',
             id: Date.now(),
             animate: true
           }]);
-          setCurrentStep(2);
-          setShowSkipButton(true);
         }, 1000);
-      } else {
-        // Default response for later interactions
-        try {
-          const response = await fetch('/api/get-feedback', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userInput: userInput })
-          });
-          
-          const feedback = await response.json();
+        return;
+      }
 
-          // Add AI response with delay for natural feel
-          setTimeout(() => {
-            setChatMessages(prev => [...prev, { 
-              text: feedback.message || "I understand. Let me help you with that.",
-              sender: 'ai',
-              id: Date.now(),
-              animate: true
-            }]);
-          }, 1000);
-        } catch (error) {
-          console.error("Error communicating with API:", error);
-          // Fallback response
-          setTimeout(() => {
-            setChatMessages(prev => [...prev, { 
-              text: "I'm sorry, I couldn't process your request at the moment.",
-              sender: 'ai',
-              id: Date.now(),
-              animate: true
-            }]);
-          }, 1000);
+      // Processing the user's message if session has started
+      try {
+        // Show typing indicator
+        setChatMessages(prev => [...prev, { 
+          text: "...", 
+          sender: 'ai',
+          id: Date.now() + '-typing',
+          animate: true,
+          isTyping: true
+        }]);
+        
+        const adviceFormData = new FormData();
+        adviceFormData.append('question', currentInput);
+        adviceFormData.append('userid', userId);
+        
+        const adviceResponse = await fetch('http://localhost:5001/music/getAdvice', {
+          method: 'POST',
+          body: adviceFormData,
+          credentials: 'include',
+          mode: 'cors'
+        });
+
+        if (!adviceResponse.ok) {
+          const errorText = await adviceResponse.text();
+          let errorMessage = "Failed to get advice";
+          
+          try {
+            // Try to parse the error as JSON
+            const errorData = JSON.parse(errorText);
+            errorMessage = errorData.error || errorMessage;
+          } catch (e) {
+            // If parsing fails, use the raw text if available
+            if (errorText) errorMessage = errorText;
+          }
+          
+          throw new Error(errorMessage);
         }
+  
+        const responseData = await adviceResponse.json();
+        
+        // Remove typing indicator and add real response
+        setChatMessages(prev => prev.filter(msg => !msg.isTyping).concat([{ 
+          text: responseData.advice, 
+          sender: 'ai',
+          id: Date.now(),
+          animate: true
+        }]));
+      } catch (error) {
+        console.error("Error:", error);
+        // Remove typing indicator and add error message
+        setChatMessages(prev => prev.filter(msg => !msg.isTyping).concat([{ 
+          text: "I'm sorry, I couldn't process your request at the moment.",
+          sender: 'ai',
+          id: Date.now(),
+          animate: true
+        }]));
       }
     }
   };
 
-  const handleSkip = () => {
-    if (currentStep === 1) {
-      // Skip the first question about instrument
-      setChatMessages(prev => [...prev, { 
-        text: "Great! How can I help you today then? I can offer technique advice, recommend practice exercises, or analyze your playing.",
-        sender: 'ai',
-        id: Date.now(),
-        animate: true
-      }]);
-      setCurrentStep(2);
-    } else if (currentStep === 2) {
-      // Skip the second question about how to help
-      setChatMessages(prev => [...prev, { 
-        text: "I'm ready to help whenever you need it. You can upload a video or record yourself playing, and I'll provide feedback on your technique.",
-        sender: 'ai',
-        id: Date.now(),
-        animate: true
-      }]);
-      setCurrentStep(3);
-      setShowSkipButton(false);
-    }
-  };
-
-  // Add this after handleSkip function and before the return statement
-  const submitToAI = async () => {
+  const startSession = async () => {
     if (!videoURL) {
       alert("Please upload or record a video first");
       return;
     }
-
+    
     try {
       // Show loading message
       setChatMessages(prev => [...prev, { 
-        text: "Analyzing your performance...", 
+        text: "Starting your session...", 
         sender: 'ai',
         id: Date.now(),
         animate: true
@@ -218,13 +243,17 @@ function Play() {
 
       // Create FormData to send files
       const formData = new FormData();
+      formData.append('userid', userId);
       
-      // Convert Blob URL back to File object if it's a recorded video
+      // Process video file
       if (recordedChunks.current.length > 0) {
         const videoBlob = new Blob(recordedChunks.current, { type: 'video/mp4' });
-        formData.append('video', videoBlob, 'recorded-video.mp4');
+        const videoFile = new File([videoBlob], "recorded-video.mp4", { 
+          type: 'video/mp4',
+          lastModified: Date.now() 
+        });
+        formData.append('video', videoFile);
       } else {
-        // For uploaded video, we need to fetch the file from input
         const videoInput = document.getElementById('video-upload');
         if (videoInput.files[0]) {
           formData.append('video', videoInput.files[0]);
@@ -233,36 +262,170 @@ function Play() {
           return;
         }
       }
-      
-      // Add info about whether music is included
+
+      // Add music file if available
       const hasMusicFile = document.getElementById('music-upload').files[0];
       formData.append('music', hasMusicFile ? 'yes' : 'no');
       
-      // Add music file if available
       if (hasMusicFile) {
         formData.append('musicFile', hasMusicFile);
       }
-
-      // First start the session with the files
-      // In your submitToAI function:
-      const sessionResponse = await fetch('http://localhost:5000/startSession', {
+      
+      // Start the session
+      const sessionResponse = await fetch('http://localhost:5001/music/startSession', {
         method: 'POST',
         body: formData,
         credentials: 'include',
-        mode: 'cors' // explicitly set cors mode
+        mode: 'cors'
       });
-
+      
       if (!sessionResponse.ok) {
         const errorData = await sessionResponse.json();
         throw new Error(errorData.error || 'Failed to start session');
       }
       
+      // Session started successfully
+      setSessionStarted(true);
+
+      // Remove loading message
+      setChatMessages(prev => prev.filter(msg => 
+        msg.text !== "Starting your session...").concat([{ 
+        text: "Session started! How would you like me to help you today? I can analyze your playing technique and suggest improvements!", 
+        sender: 'ai',
+        id: Date.now(),
+        animate: true
+      }]));
+      
+      // Enable analysis option
+      setCanAnalyze(true);
+      
+    } catch (error) {
+      console.error("Error starting session:", error);
+      setChatMessages(prev => prev.filter(msg => 
+        msg.text !== "Starting your session...").concat([{ 
+        text: `Error: ${error.message || "Something went wrong when starting your session."}`, 
+        sender: 'ai',
+        id: Date.now(),
+        animate: true
+      }]));
+    }
+  };
+
+  const newRecording = async () => {
+    if (!videoURL) {
+      alert("Please upload or record a video first");
+      return;
+    }
+    
+    try {
+      // Show loading message
+      setChatMessages(prev => [...prev, { 
+        text: "Submitting new recording...", 
+        sender: 'ai',
+        id: Date.now(),
+        animate: true
+      }]);
+
+      // Create FormData to send files
+      const formData = new FormData();
+      formData.append('userid', userId);
+      
+      // Process video file
+      if (recordedChunks.current.length > 0) {
+        const videoBlob = new Blob(recordedChunks.current, { type: 'video/mp4' });
+        const videoFile = new File([videoBlob], "recorded-video.mp4", { 
+          type: 'video/mp4',
+          lastModified: Date.now() 
+        });
+        formData.append('video', videoFile);
+      } else {
+        const videoInput = document.getElementById('video-upload');
+        if (videoInput.files[0]) {
+          formData.append('video', videoInput.files[0]);
+        } else {
+          alert("Cannot process video. Please try uploading again.");
+          return;
+        }
+      }
+
+      // Add music file if available
+      const hasMusicFile = document.getElementById('music-upload').files[0];
+      formData.append('music', hasMusicFile ? 'yes' : 'no');
+      
+      if (hasMusicFile) {
+        formData.append('musicFile', hasMusicFile);
+      }
+      
+      // Start the session
+      const sessionResponse = await fetch('http://localhost:5001/music/startSession', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+        mode: 'cors'
+      });
+      
+      if (!sessionResponse.ok) {
+        const errorData = await sessionResponse.json();
+        throw new Error(errorData.error || 'Failed to start session');
+      }
+      
+      // Session started successfully
+      setSessionStarted(true);
+
+      // Remove loading message
+      setChatMessages(prev => prev.filter(msg => 
+        msg.text !== "Submitting new recording...").concat([{ 
+        text: "New recording submitted!", 
+        sender: 'ai',
+        id: Date.now(),
+        animate: true
+      }]));
+      
+      // Enable analysis option
+      setCanAnalyze(true);
+      
+    } catch (error) {
+      console.error("Error starting session:", error);
+      setChatMessages(prev => prev.filter(msg => 
+        msg.text !== "Submitting new recording...").concat([{ 
+        text: `Error: ${error.message || "Something went wrong when submitting your new recording. Please refresh."}`, 
+        sender: 'ai',
+        id: Date.now(),
+        animate: true
+      }]));
+    }
+  };
+  
+
+  const submitToAI = async () => {
+    if (!videoURL) {
+      alert("Please upload or record a video first");
+      return;
+    }
+
+    //If user is not logged in, alert them
+    if (!userId) {
+      alert("Please log in to analyze your playing");
+      return;
+    }
+
+    try {
+      setVideoAnalyzed(true);
+
+      setChatMessages(prev => [...prev, { 
+        text: "Analyzing your performance...", 
+        sender: 'ai',
+        id: Date.now(),
+        animate: true
+      }]);
+      
       // Then send the question to get advice
-      const question = "Please analyze my playing technique and provide feedback";
+      const question = "Please analyze my playing technique and provide feedback on what I did wrong and how I can improve. Be specific.";
       const adviceFormData = new FormData();
       adviceFormData.append('question', question);
+      adviceFormData.append('userid', userId);
       
-      const adviceResponse = await fetch('http://localhost:5000/getAdvice', {
+      const adviceResponse = await fetch('http://localhost:5001/music/getAdvice', {
         method: 'POST',
         body: adviceFormData,
         credentials: 'include',
@@ -270,8 +433,19 @@ function Play() {
       });
 
       if (!adviceResponse.ok) {
-        const errorData = await adviceResponse.json();
-        throw new Error(errorData.error || 'Failed to get advice');
+        const errorText = await adviceResponse.text();
+        let errorMessage = "Failed to get advice";
+        
+        try {
+          // Try to parse the error as JSON
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error || errorMessage;
+        } catch (e) {
+          // If parsing fails, use the raw text if available
+          if (errorText) errorMessage = errorText;
+        }
+        
+        throw new Error(errorMessage);
       }
 
       const responseData = await adviceResponse.json();
@@ -284,6 +458,7 @@ function Play() {
         id: Date.now(),
         animate: true
       }]));
+
     } catch (error) {
       console.error("Error:", error);
       setChatMessages(prev => prev.filter(msg => 
@@ -293,6 +468,64 @@ function Play() {
         id: Date.now(),
         animate: true
       }]));
+    }
+  };
+
+  // Add this function to end and save the session
+  const endSession = async () => {
+    if (!userId || chatMessages.length <= 1) {
+      return; // Don't save if no user or meaningful conversation
+    }
+
+    try {
+      // Create a formatted history of just the messages for saving
+      const historyToSave = chatMessages.map(msg => ({
+        text: msg.text,
+        sender: msg.sender
+      }));
+
+      const formData = new FormData();
+      formData.append('userid', userId);
+      formData.append('history', JSON.stringify(historyToSave));
+
+      // Send request to end session and save history
+      await fetch('http://localhost:5001/music/endSession', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+        mode: 'cors'
+      });
+
+      console.log("Session saved successfully");
+
+      // Reset the state to start fresh
+      setVideoURL(null);
+      setMusicURL(null);
+      setSessionStarted(false);
+      setCanAnalyze(false);
+      setVideoAnalyzed(false);
+      
+      // Reset chat to initial greeting
+      setChatMessages([
+        { 
+          text: "Hello, I'm Melody, your music guide today. Please upload a video of your playing or record yourself directly. You can also upload sheet music for more detailed analysis.", 
+          sender: "ai", 
+          id: Date.now(), 
+          animate: true 
+        }
+      ]);
+
+      // Clear file inputs
+      const videoInput = document.getElementById('video-upload');
+      const musicInput = document.getElementById('music-upload');
+      if (videoInput) videoInput.value = '';
+      if (musicInput) musicInput.value = '';
+      
+      // Reset any recorded chunks
+      recordedChunks.current = [];
+
+    } catch (error) {
+      console.error("Error saving session:", error);
     }
   };
 
@@ -505,6 +738,7 @@ function Play() {
                   fontSize: '16px', 
                   fontWeight: '500',
                   opacity: '0.9',
+                  color: 'white',
                   textShadow: '0 1px 2px rgba(0,0,0,0.3)'
                 }}>
                   Ready to record or upload
@@ -540,30 +774,6 @@ function Play() {
             )}
           </div>
 
-          {/* Music player section - only show when music is uploaded */}
-          {musicURL && (
-            <div style={{
-              width: '100%',
-              marginBottom: '20px',
-              padding: '15px',
-              backgroundColor: 'rgba(147, 112, 219, 0.1)',
-              borderRadius: '15px',
-              border: '1px solid #d8c3ff',
-            }}>
-              <p style={{ 
-                marginBottom: '10px',
-                color: '#4B0082',
-                fontWeight: '500'
-              }}>
-                Uploaded Music
-              </p>
-              <audio 
-                controls 
-                src={musicURL}
-                style={{ width: '100%' }}
-              />
-            </div>
-          )}
         </div>
       </div>
 
@@ -664,7 +874,7 @@ function Play() {
                   style={{
                     display: 'inline-block',
                     padding: '12px 16px',
-                    backgroundColor: msg.sender === 'user' ? '#7382E8' : '#9892F3',
+                    backgroundColor: msg.sender === 'user' ? '#7382E8' : '#AD98E6',
                     color: 'white',
                     borderRadius: msg.sender === 'user' ? '18px 18px 0 18px' : '18px 18px 18px 0',
                     maxWidth: '80%',
@@ -680,6 +890,7 @@ function Play() {
                   style={{
                     marginTop: '8px',
                     display: 'flex',
+                    alignItems: 'center',
                     justifyContent: msg.sender === 'user' ? 'flex-end' : 'flex-start',
                     animation: 'fadeIn 0.5s forwards',
                     animationDelay: '0.5s',
@@ -687,44 +898,74 @@ function Play() {
                     gap: '8px'
                   }}
                 >
-                  {/* Show skip button when appropriate */}
+                  {/* Show submit recording button when video is available and session hasn't started */}
                   {msg.sender === 'ai' && 
                   index === chatMessages.length - 1 && 
-                  showSkipButton && 
-                  currentStep <= 2 && (
+                  videoURL && 
+                  !sessionStarted && (
                     <button
-                      onClick={handleSkip}
+                      onClick={startSession}
                       style={{
-                        backgroundColor: '#f0f0f0',
+                        backgroundColor: '#C598E6',
                         border: 'none',
                         borderRadius: '15px',
                         padding: '8px 15px',
                         fontSize: '14px',
-                        color: '#555',
+                        color: 'white',
                         cursor: 'pointer',
-                        boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
                         transition: 'all 0.2s ease',
                       }}
                       onMouseOver={(e) => {
-                        e.currentTarget.style.backgroundColor = '#e0e0e0';
+                        e.currentTarget.style.backgroundColor = '#5a3a99';
                       }}
                       onMouseOut={(e) => {
-                        e.currentTarget.style.backgroundColor = '#f0f0f0';
+                        e.currentTarget.style.backgroundColor = '#C598E6';
                       }}
                     >
-                      Skip
+                      Start Session
                     </button>
-                )}
+                  )}
+
+                  {/* Show submit recording button when video is available and session hasn't started */}
+                  {msg.sender === 'ai' && 
+                  index === chatMessages.length - 1 && 
+                  videoURL && 
+                  newVideo && (
+                    <button
+                      onClick={newRecording}
+                      style={{
+                        backgroundColor: '#AE8BE4',
+                        border: 'none',
+                        borderRadius: '15px',
+                        padding: '8px 15px',
+                        fontSize: '14px',
+                        color: 'white',
+                        cursor: 'pointer',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                        transition: 'all 0.2s ease',
+                      }}
+                      onMouseOver={(e) => {
+                        e.currentTarget.style.backgroundColor = '#5a3a99';
+                      }}
+                      onMouseOut={(e) => {
+                        e.currentTarget.style.backgroundColor = '#AE8BE4';
+                      }}
+                    >
+                      Submit New Recording
+                    </button>
+                  )}
 
                 {/* Show analyze button when video is available and this is the latest message */}
                 {msg.sender === 'ai' && 
                 index === chatMessages.length - 1 && 
                 videoURL && 
-                canAnalyze && (
+                canAnalyze &&
+                !videoAnalyzed && (
                   <button
                     onClick={submitToAI}
                     style={{
-                      backgroundColor: '#6C4AB6',
+                      backgroundColor: '#7165E2',
                       border: 'none',
                       borderRadius: '15px',
                       padding: '8px 15px',
@@ -735,16 +976,47 @@ function Play() {
                       transition: 'all 0.2s ease',
                     }}
                     onMouseOver={(e) => {
-                      e.currentTarget.style.backgroundColor = '#5a3a99';
+                      e.currentTarget.style.backgroundColor = '#A098E6';
                     }}
                     onMouseOut={(e) => {
-                      e.currentTarget.style.backgroundColor = '#6C4AB6';
+                      e.currentTarget.style.backgroundColor = '#7165E2';
                     }}
                   >
                     Analyze My Playing
                   </button>
                 )}
               </div>
+
+              {/* End Session button - shows below analyze button and only on the last message */}
+              {msg.sender === 'ai' &&
+              index === chatMessages.length - 1 &&
+              userId &&
+              sessionStarted && (
+                <button
+                  onClick={endSession}
+                  style={{
+                    backgroundColor: '#3B61DE',
+                    border: 'none',
+                    borderRadius: '15px',
+                    padding: '8px 15px',
+                    fontSize: '14px',
+                    marginTop: '5px',
+                    color: 'white',
+                    cursor: 'pointer',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                    transition: 'all 0.2s ease',
+                    alignSelf: msg.sender === 'user' ? 'flex-end' : 'flex-start',
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.backgroundColor = '#94A9EE';
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.backgroundColor = '#3B61DE';
+                  }}
+                >
+                  End Session
+                  </button>
+            )}
             </div>
           ))}
           </div>
@@ -759,16 +1031,17 @@ function Play() {
               type="text"
               value={userInput}
               onChange={(e) => setUserInput(e.target.value)}
-              placeholder="Ask something to the AI..."
+              placeholder="  Ask something to the AI..."
               style={{
                 width: '100%',
-                padding: '14px 18px',
+                padding: '14px 20px',
                 borderRadius: '30px',
                 border: '1px solid #d8c3ff',
                 fontSize: '16px',
                 backgroundColor: 'white',
                 boxShadow: '0 1px 3px rgba(0,0,0,0.1) inset',
-                outline: 'none'
+                outline: 'none',
+                height: '50px'
               }}
               onKeyPress={(e) => {
                 if (e.key === 'Enter') {

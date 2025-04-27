@@ -3,6 +3,7 @@ import Navbar from './components/Navbar.jsx';  // Correct import
 import Home from './pages/Home.jsx';
 import Play from './pages/Play.jsx';
 import Login from './pages/Login.jsx';
+import Profile from './pages/Profile.jsx';
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/play" element={<Play />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/profile" element={<Profile />} />
       </Routes>
     </Router>
   );
