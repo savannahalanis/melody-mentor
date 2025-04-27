@@ -94,7 +94,6 @@ function Play() {
 
   const startRecording = async () => {
     try {
-      setSessionStarted(false);
       setRecording(true);
 
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
