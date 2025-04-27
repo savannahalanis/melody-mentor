@@ -186,7 +186,7 @@ function Play() {
         adviceFormData.append('question', currentInput);
         adviceFormData.append('userid', userId);
         
-        const adviceResponse = await fetch('http://localhost:5000/music/getAdvice', {
+        const adviceResponse = await fetch('http://localhost:5001/music/getAdvice', {
           method: 'POST',
           body: adviceFormData,
           credentials: 'include',
@@ -277,7 +277,7 @@ function Play() {
       }
       
       // Start the session
-      const sessionResponse = await fetch('http://localhost:5000/music/startSession', {
+      const sessionResponse = await fetch('http://localhost:5001/music/startSession', {
         method: 'POST',
         body: formData,
         credentials: 'include',
@@ -348,7 +348,7 @@ function Play() {
       adviceFormData.append('question', question);
       adviceFormData.append('userid', userId);
       
-      const adviceResponse = await fetch('http://localhost:5000/music/getAdvice', {
+      const adviceResponse = await fetch('http://localhost:5001/music/getAdvice', {
         method: 'POST',
         body: adviceFormData,
         credentials: 'include',
@@ -414,7 +414,7 @@ function Play() {
       formData.append('history', JSON.stringify(historyToSave));
 
       // Send request to end session and save history
-      await fetch('http://localhost:5000/music/endSession', {
+      await fetch('http://localhost:5001/music/endSession', {
         method: 'POST',
         body: formData,
         credentials: 'include',
