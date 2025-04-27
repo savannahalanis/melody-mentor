@@ -83,10 +83,10 @@ function Navbar() {
             <Link to="/" style={linkStyle}>Home</Link>
           </li>
           <li style={{ marginRight: '20px' }}>
-            <Link to="/about" style={linkStyle}>About</Link>
+            <Link to="/play" style={linkStyle}> Play </Link>
           </li>
-          <li>
-            <Link to="/play" style={linkStyle}>Play</Link>
+          <li style={{ marginRight: '20px' }}>
+            <Link to="/login" style={linkStyle}> Login </Link>
           </li>
         </ul>
     </nav>

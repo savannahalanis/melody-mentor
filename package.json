@@ -1,0 +1,31 @@
+{
+  "name": "music-edu",
+  "version": "1.0.0",
+  "description": "LA Hacks 2025",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "concurrently \"npm run start-react\" \"npm run start-backend\"",
+    "start-react": "npm run start --prefix frontend",
+    "start-backend": "cd backend && FLASK_APP=app.py FLASK_ENV=development flask run --host=0.0.0.0 --port=5000"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/savannahalanis/music-edu.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/savannahalanis/music-edu/issues"
+  },
+  "homepage": "https://github.com/savannahalanis/music-edu#readme",
+  "dependencies": {
+    "axios": "^1.9.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.4.1",
+    "concurrently": "^9.1.2",
+    "vite": "^6.3.3"
+  }
+}

@@ -40,3 +40,8 @@
 .read-the-docs {
   color: #888;
 }
+
+::selection {
+  background: #deaae2;  /* background color when text is highlighted */
+  color: white;         /* text color when highlighted */
+}
