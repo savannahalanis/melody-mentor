@@ -14,7 +14,8 @@ app = Flask(__name__)
 app.secret_key = os.environ.get('sessionkey')
 
 # Enable CORS
-CORS(app)  # This will allow all origins for all routes
+CORS(app, supports_credentials=True,
+     allow_headers=["Content-Type", "Authorization", "Origin"])
 
 # Register blueprints
 app.register_blueprint(auth_bp, url_prefix="/auth")

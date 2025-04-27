@@ -16,6 +16,7 @@ api_key = os.environ.get('geminikey')
 
 #set up the Flask route 
 music_bp = Blueprint('music', __name__)
+CORS(music_bp, supports_credentials=True)
 
  #for now working with inline and hoping that is faster
 clientGem = genai.Client(api_key=api_key)
