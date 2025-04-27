@@ -8,7 +8,7 @@ function Play() {
   const mediaRecorderRef = useRef(null);
   const recordedChunks = useRef([]);
   const [chatMessages, setChatMessages] = useState([
-    { text: "Hello, I'm Melody Mentor, your guide today. Please upload a video of your playing or record yourself directly. You can also upload sheet music for more detailed analysis.", sender: "ai", id: 1, animate: true }
+    { text: "Hello, I'm Melody, your music guide today. Please upload a video of your playing or record yourself directly. You can also upload sheet music for more detailed analysis.", sender: "ai", id: 1, animate: true }
   ]);
   const [userInput, setUserInput] = useState('');
   // const [currentStep, setCurrentStep] = useState(1);
@@ -16,9 +16,10 @@ function Play() {
 
   // Update your state variables to track the session state
   const [sessionStarted, setSessionStarted] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [canAnalyze, setCanAnalyze] = useState(false);
   const [videoAnalyzed, setVideoAnalyzed] = useState(false);
+
+  const [newVideo, setNewVideo] = useState(false);
   
   // Add this to your state variables
   const [userId, setUserId] = useState(localStorage.getItem('userId') || '');
@@ -77,8 +78,9 @@ function Play() {
     if (file) {
       const url = URL.createObjectURL(file);
       setVideoURL(url);
-      setCanAnalyze(true); // Enable analysis when video is uploaded
-      setVideoAnalyzed(false);
+    }
+    if (sessionStarted) {
+      setNewVideo(true);
     }
   };
 
@@ -288,7 +290,7 @@ function Play() {
       // Remove loading message
       setChatMessages(prev => prev.filter(msg => 
         msg.text !== "Starting your session...").concat([{ 
-        text: "Session started! How would you like me to help you today? I can analyze your playing technique, suggest improvements, or answer specific questions about your instrument.", 
+        text: "Session started! How would you like me to help you today? I can analyze your playing technique and suggest improvements!", 
         sender: 'ai',
         id: Date.now(),
         animate: true
@@ -407,12 +409,8 @@ function Play() {
       return;
     }
 
-    if (isAnalyzing) {
-      return;
-    }
-
     try {
-      setIsAnalyzing(true);
+      setVideoAnalyzed(true);
 
       setChatMessages(prev => [...prev, { 
         text: "Analyzing your performance...", 
@@ -422,7 +420,7 @@ function Play() {
       }]);
       
       // Then send the question to get advice
-      const question = "Please analyze my playing technique and provide feedback";
+      const question = "Please analyze my playing technique and provide feedback on what I did wrong and how I can improve. Be specific.";
       const adviceFormData = new FormData();
       adviceFormData.append('question', question);
       adviceFormData.append('userid', userId);
@@ -461,9 +459,6 @@ function Play() {
         animate: true
       }]));
 
-      // Set video analyzed state
-      setVideoAnalyzed(true);
-
     } catch (error) {
       console.error("Error:", error);
       setChatMessages(prev => prev.filter(msg => 
@@ -473,9 +468,6 @@ function Play() {
         id: Date.now(),
         animate: true
       }]));
-    } finally {
-      // Reset analyzing state
-      setIsAnalyzing(false);
     }
   };
 
@@ -516,7 +508,7 @@ function Play() {
       // Reset chat to initial greeting
       setChatMessages([
         { 
-          text: "Hello, I'm Melody Mentor, your guide today. Please upload a video of your playing or record yourself directly. You can also upload sheet music for more detailed analysis.", 
+          text: "Hello, I'm Melody, your music guide today. Please upload a video of your playing or record yourself directly. You can also upload sheet music for more detailed analysis.", 
           sender: "ai", 
           id: Date.now(), 
           animate: true 
@@ -782,30 +774,6 @@ function Play() {
             )}
           </div>
 
-          {/* Music player section - only show when music is uploaded */}
-          {musicURL && (
-            <div style={{
-              width: '100%',
-              marginBottom: '20px',
-              padding: '15px',
-              backgroundColor: 'rgba(147, 112, 219, 0.1)',
-              borderRadius: '15px',
-              border: '1px solid #d8c3ff',
-            }}>
-              <p style={{ 
-                marginBottom: '10px',
-                color: '#4B0082',
-                fontWeight: '500'
-              }}>
-                Uploaded Music
-              </p>
-              <audio 
-                controls 
-                src={musicURL}
-                style={{ width: '100%' }}
-              />
-            </div>
-          )}
         </div>
       </div>
 
@@ -938,7 +906,7 @@ function Play() {
                     <button
                       onClick={startSession}
                       style={{
-                        backgroundColor: '#AE8BE4',
+                        backgroundColor: '#C598E6',
                         border: 'none',
                         borderRadius: '15px',
                         padding: '8px 15px',
@@ -952,7 +920,7 @@ function Play() {
                         e.currentTarget.style.backgroundColor = '#5a3a99';
                       }}
                       onMouseOut={(e) => {
-                        e.currentTarget.style.backgroundColor = '#AE8BE4';
+                        e.currentTarget.style.backgroundColor = '#C598E6';
                       }}
                     >
                       Start Session
@@ -963,7 +931,7 @@ function Play() {
                   {msg.sender === 'ai' && 
                   index === chatMessages.length - 1 && 
                   videoURL && 
-                  !sessionStarted && (
+                  newVideo && (
                     <button
                       onClick={newRecording}
                       style={{
