@@ -4,32 +4,44 @@ import uuid
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
-from flask import Flask, request, session, jsonify
+from flask import Flask, request, session, jsonify, Blueprint
 from flask_cors import CORS
+from pymongo import MongoClient #to work with MongoDB
+from auth import users_collection
+from bson import ObjectId
+#this will allow me to access the database
 
 load_dotenv()
 api_key = os.environ.get('geminikey')
 
 #set up the Flask route 
-# app = Flask(__name__)
-# CORS(app) #enables CORS for all routes and origins, needed for the cross platform cors is cross-origin
-# app.secret_key= os.environ.get('sessionkey')
+music_bp = Blueprint('music', __name__)
 
-# Replace the simple CORS setup with:
-# Replace the existing CORS setup with this:
-app = Flask(__name__)
-CORS(app, 
-     supports_credentials=True, 
-     origins=["http://localhost:5173", "http://localhost:5174"],
-     allow_headers=["Content-Type", "Authorization"],
-     methods=["GET", "POST", "OPTIONS"])
-app.secret_key = os.environ.get('sessionkey')
+ #for now working with inline and hoping that is faster
+clientGem = genai.Client(api_key=api_key)
 
 
 #if you make this a posat request everytime you submit your music then itll just get overriden each time which is good 
 #using sessions will let you just chat with the bot which should make that part faster!
-@app.route("/startSession", methods=['POST'])
+@music_bp.route("/startSession", methods=['POST'])
 def start_session():
+
+    #can end session this way
+    if session.get('session_id') and session.get('history'):
+        userID = request.form['userid']
+        formatted_history = session.get('history')
+        session_data = clientGem.models.generate_content(
+        model='gemini-2.0-flash', contents=['Summarize this history for future sessions. This is advice on playing music properly. This will be used to guide the same user in the future', formatted_history]
+    )
+        users_collection.update_one(
+            {"_id": ObjectId(userID)},
+            {"$push": {"memory": session_data}}  # Add session data to the user's memory field
+        )
+
+        #Clear the previous session
+        session.clear()
+
+        
     video=request.files['video']
     if video.filename.rsplit('.', 1)[1].lower() != 'mp4':
         return jsonify({"error": "Must upload a valid video (mp4)."}), 400
@@ -51,10 +63,13 @@ def start_session():
     # Store the session information in the Flask session
     session['session_id'] = session_id
     session['video_path'] = video_path
+    
+    #create an empty session history to use 
+    session['history'] = ""
     return jsonify({"message": f"Session started! Video saved as {video_path}"}), 200
 
 
-@app.route("/getAdvice", methods = ['POST'])
+@music_bp.route("/getAdvice", methods=['POST'])
 def giveAnalysis():
     if 'session_id' not in session:
         return jsonify({"error": "You must upload a video first."}), 400
@@ -71,6 +86,10 @@ def giveAnalysis():
 
     prompt = makeQuestions(music_path, question)
     response = analyzeVideo(video_path, music_path, prompt)
+
+    # Add the question and response to the session history
+    session['history'] += f"Question: {question}\nResponse: {response}\n\n"
+
     return jsonify({"advice": response}), 200
 
 
@@ -93,7 +112,7 @@ def makeQuestions(music, questions):
     if music:
         musicQuestion = "The video is playing the music in the sheet music file. Make sure to give feedback based on the music they are playing from this"
 
-    prompt = "Give individualized feedback on the video given to help the player. Feedback can include things about tone, style, rhythm, embouchure if they are playing a wind instrument, hand position if they are playing a string instrument, and any other music related feedback. Make the feedback very specific. Do not tell them to get private lessons. If something that is not music is uploaded so you can not process something that is not music"
+    prompt = "Give individualized feedback on the video given to help the player. Feedback can include things about tone, style, rhythm, embouchure if they are playing a wind instrument, hand position if they are playing a string instrument, and any other music related feedback. Make the feedback very specific. Do not tell them to get private lessons. If something that is not music is uploaded so you can not process something that is not music. Please just give on nice and easy to read paragraph. "
 
     #then add into the content of like the questions we want to add 
     if questions:
@@ -106,9 +125,6 @@ def makeQuestions(music, questions):
 
     #pass the content into the mode
 def analyzeVideo(video, music,  prompt):
-
-    #for now working with inline and hoping that is faster
-    client = genai.Client(api_key=api_key)
 
 
     video_bytes = open(video, 'rb').read()
@@ -129,12 +145,48 @@ def analyzeVideo(video, music,  prompt):
     else:
         content.append(prompt)
 
-    response = client.models.generate_content(
+    content.append("This is the history of this specific session. You can use this if anything in here is useful" + session.get('history'))
+
+    user = users_collection.find_one(
+            {"_id": ObjectId(request.form['userid'])}  # Add session data to the user's memory field
+        )
+
+    if not user:
+        return {"error": "User not found."}, 404
+
+    history = user.get('history', [])
+
+    # Optionally, you can format the history as a giant string
+    history_str = "These are things that happened in past sessions. These are probably less important but you can use them"
+    for entry in history:
+        history_str += f"Question: {entry['question']}\nResponse: {entry['response']}\n\n"
+
+    content.append(history_str)
+
+    response = clientGem.models.generate_content(
         model='gemini-2.0-flash', contents=content
     )
 
     return response.text
 
 
-if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+
+@music_bp.route("/endSession", methods=['POST'])
+def end_session():
+    #can end session this way
+    if session.get('session_id') and session.get('history'):
+        userID = request.form['userid']
+        formatted_history = session.get('history')
+        session_data = clientGem.models.generate_content(
+        model='gemini-2.0-flash', contents=['Summarize this history for future sessions. This is advice on playing music properly. This will be used to guide the same user in the future', formatted_history]
+    )
+        users_collection.update_one(
+            {"_id": ObjectId(userID)},
+            {"$push": {"memory": session_data.text}}  # Add session data to the user's memory field
+        )
+
+    # Clear the session after updating
+    session.clear()
+
+
+    return {"message": "Session Ended Succesfully"}, 200
