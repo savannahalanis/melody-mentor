@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Blueprint
 import jwt
 import bcrypt
 from datetime import datetime, timedelta
@@ -8,19 +8,19 @@ import os
 
 load_dotenv()  # Load environment variables from .env file
 
-app = Flask(__name__)
 
 # Load Mongo URI and JWT secret from environment variables
+auth_bp = Blueprint('auth', __name__)
 MONGO_URI = os.getenv("MONGO_URI")
 JWT_SECRET = os.getenv("JWT_SECRET")
 
 # Connect to MongoDB
 client = MongoClient(MONGO_URI)
-db = client.get_database()  # Use the default database
+db = client["melody-mentor-db"]  # Use the default database
 users_collection = db.users  # Collection for users
 
 # Register route
-@app.route('/register', methods=['POST'])
+@auth_bp.route('/register', methods=['POST'])
 def register():
     data = request.get_json()
 
@@ -41,16 +41,18 @@ def register():
     hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
 
     # Insert user into the database
+    #making each user also hold memory
     users_collection.insert_one({
         "email": email,
         "username": username,
         "password": hashed_password,
+        "memory": []
     })
 
     return jsonify({"message": "User registered successfully"}), 201
 
 # Login route
-@app.route('/login', methods=['POST'])
+@auth_bp.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
 
@@ -75,10 +77,11 @@ def login():
         'exp': datetime.utcnow() + timedelta(hours=1)  # Token expiration time
     }, JWT_SECRET, algorithm='HS256')
 
-    return jsonify({"token": token}), 200
+#also return a unique uername to be used
+    return jsonify({"token": token,'user': str(user['_id']) }), 200
 
 # Example protected route
-@app.route('/protected', methods=['GET'])
+@auth_bp.route('/protected', methods=['GET'])
 def protected():
     token = request.headers.get('Authorization')
     if not token:
@@ -95,6 +98,3 @@ def protected():
         return jsonify({"error": "Invalid token"}), 401
 
     return jsonify({"message": f"Hello user {user_id}"})
-
-if __name__ == '__main__':
-    app.run(debug=True)
